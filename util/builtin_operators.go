@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/Knetic/govaluate"
-	"github.com/casbin/casbin/v2/rbac"
+	"github.com/CPTSLLC/casbin/v2/rbac"
 )
 
 // KeyMatch determines whether key1 matches the pattern of key2 (similar to RESTful path), key2 can contain a *.

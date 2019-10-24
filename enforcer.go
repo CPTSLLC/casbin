@@ -19,15 +19,15 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/CPTSLLC/casbin/util"
+	"github.com/CPTSLLC/casbin/v2/effect"
+	"github.com/CPTSLLC/casbin/v2/log"
+	"github.com/CPTSLLC/casbin/v2/model"
+	"github.com/CPTSLLC/casbin/v2/persist"
+	fileadapter "github.com/CPTSLLC/casbin/v2/persist/file-adapter"
+	"github.com/CPTSLLC/casbin/v2/rbac"
+	defaultrolemanager "github.com/CPTSLLC/casbin/v2/rbac/default-role-manager"
 	"github.com/Knetic/govaluate"
-	"github.com/casbin/casbin/v2/effect"
-	"github.com/casbin/casbin/v2/log"
-	"github.com/casbin/casbin/v2/model"
-	"github.com/casbin/casbin/v2/persist"
-	fileadapter "github.com/casbin/casbin/v2/persist/file-adapter"
-	"github.com/casbin/casbin/v2/rbac"
-	defaultrolemanager "github.com/casbin/casbin/v2/rbac/default-role-manager"
-	"github.com/casbin/casbin/v2/util"
 )
 
 // Enforcer is the main interface for authorization enforcement and policy management.
@@ -331,11 +331,13 @@ func (e *Enforcer) BuildRoleLinks() error {
 }
 
 // enforce use a custom matcher to decides whether a "subject" can access a "object" with the operation "action", input parameters are usually: (matcher, sub, obj, act), use model matcher by default when matcher is "".
-func (e *Enforcer) enforce(matcher string, rvals ...interface{}) (bool, error) {
+func (e *Enforcer) enforce(policy [][]string, rvals ...interface{}) (bool, error) {
 	if !e.enabled {
 		return true, nil
 	}
-
+	if len(policy) < 1 {
+		policy = e.model["p"]["p"].Policy
+	}
 	functions := e.fm
 	if _, ok := e.model["g"]; ok {
 		for key, ast := range e.model["g"] {
@@ -343,12 +345,8 @@ func (e *Enforcer) enforce(matcher string, rvals ...interface{}) (bool, error) {
 			functions[key] = util.GenerateGFunction(rm)
 		}
 	}
-	var expString string
-	if matcher == "" {
-		expString = e.model["m"]["m"].Value
-	} else {
-		expString = matcher
-	}
+	expString := e.model["m"]["m"].Value
+
 	expression, err := govaluate.NewEvaluableExpressionWithFunctions(expString, functions)
 	if err != nil {
 		return false, err
@@ -372,7 +370,7 @@ func (e *Enforcer) enforce(matcher string, rvals ...interface{}) (bool, error) {
 
 	var policyEffects []effect.Effect
 	var matcherResults []float64
-	if policyLen := len(e.model["p"]["p"].Policy); policyLen != 0 {
+	if policyLen := len(policy); policyLen != 0 {
 		policyEffects = make([]effect.Effect, policyLen)
 		matcherResults = make([]float64, policyLen)
 		if len(e.model["r"]["r"].Tokens) != len(rvals) {
@@ -382,7 +380,7 @@ func (e *Enforcer) enforce(matcher string, rvals ...interface{}) (bool, error) {
 				len(rvals),
 				rvals)
 		}
-		for i, pvals := range e.model["p"]["p"].Policy {
+		for i, pvals := range policy {
 			// log.LogPrint("Policy Rule: ", pvals)
 			if len(e.model["p"]["p"].Tokens) != len(pvals) {
 				return false, fmt.Errorf(
@@ -483,13 +481,18 @@ func (e *Enforcer) enforce(matcher string, rvals ...interface{}) (bool, error) {
 
 // Enforce decides whether a "subject" can access a "object" with the operation "action", input parameters are usually: (sub, obj, act).
 func (e *Enforcer) Enforce(rvals ...interface{}) (bool, error) {
-	return e.enforce("", rvals...)
+	return e.enforce([][]string{}, rvals...)
 }
 
-// EnforceWithMatcher use a custom matcher to decides whether a "subject" can access a "object" with the operation "action", input parameters are usually: (matcher, sub, obj, act), use model matcher by default when matcher is "".
-func (e *Enforcer) EnforceWithMatcher(matcher string, rvals ...interface{}) (bool, error) {
-	return e.enforce(matcher, rvals...)
+// Enforce decides whether a "subject" can access a "object" with the operation "action", input parameters are usually: (sub, obj, act).
+func (e *Enforcer) EnforceOnPolicy(policy [][]string, rvals ...interface{}) (bool, error) {
+	return e.enforce(policy, rvals...)
 }
+
+//// EnforceWithMatcher use a custom matcher to decides whether a "subject" can access a "object" with the operation "action", input parameters are usually: (matcher, sub, obj, act), use model matcher by default when matcher is "".
+//func (e *Enforcer) EnforceWithMatcher(matcher string, rvals ...interface{}) (bool, error) {
+//	return e.enforce(matcher, rvals...)
+//}
 
 // assumes bounds have already been checked
 type enforceParameters struct {

@@ -17,7 +17,7 @@ package casbin
 import (
 	"testing"
 
-	"github.com/casbin/casbin/v2/util"
+	"github.com/CPTSLLC/casbin/v2/util"
 )
 
 // testGetUsersInDomain: Add by Gordon

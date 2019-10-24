@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/Knetic/govaluate"
-	"github.com/casbin/casbin/v2/persist"
+	"github.com/CPTSLLC/casbin/v2/persist"
 )
 
 // SyncedEnforcer wraps Enforcer and provides synchronized access
