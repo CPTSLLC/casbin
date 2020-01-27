@@ -338,7 +338,10 @@ func (e *Enforcer) enforce(policy [][]string, rvals ...interface{}) (bool, error
 	if len(policy) < 1 {
 		policy = e.model["p"]["p"].Policy
 	}
-	functions := e.fm
+	functions := model.FunctionMap{}
+	for k, v := range e.fm {
+		functions[k] = v
+	}
 	if _, ok := e.model["g"]; ok {
 		for key, ast := range e.model["g"] {
 			rm := ast.RM
